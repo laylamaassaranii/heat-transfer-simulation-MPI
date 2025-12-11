@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns  # facultatif mais joli
@@ -10,14 +11,14 @@ def plot_heatmap(csv_path: str):
     plt.figure(figsize=(6, 5))
     im = plt.imshow(
         data,
-        origin="lower",     # j=0 en bas
+        origin="lower",   # j=0 en bas
         cmap="viridis",
         aspect="equal"
     )
     plt.colorbar(im, label="Temperature")
     plt.xlabel("i (x index)")
     plt.ylabel("j (y index)")
-    plt.title("Final temperature field")
+    plt.title(f"Final temperature field\n{csv_path}")
     plt.tight_layout()
     plt.show()
 
@@ -31,9 +32,15 @@ def plot_heatmap(csv_path: str):
     # )
     # plt.xlabel("i (x index)")
     # plt.ylabel("j (y index)")
-    # plt.title("Final temperature field (Seaborn)")
+    # plt.title(f"Final temperature field (Seaborn)\n{csv_path}")
     # plt.tight_layout()
     # plt.show()
 
 if __name__ == "__main__":
-    plot_heatmap("heat_output_final.csv")
+    if len(sys.argv) < 2:
+        print("Usage: python visualization.py <csv_file>")
+        print("Example: python visualization.py heat_mpi_large_np4_final.csv")
+        sys.exit(1)
+
+    csv_file = sys.argv[1]
+    plot_heatmap(csv_file)
