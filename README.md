@@ -6,5 +6,5 @@ A simulation of heat transfer in 2D grids using MPI.
 
 Layla Maassarani (201865)
 Ali Joumaa (211058)
-Noumat Khatib
-Farouk Tannir
+Neamat Khatib (220966)
+Farouk Tannir (201153)
