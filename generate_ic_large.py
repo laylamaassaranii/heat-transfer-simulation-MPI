@@ -2,15 +2,15 @@ import math
 import os
 
 # --- PARAMETERS ---
-Nx = 200     # you can increase later to 800, 1000, etc.
+Nx = 200 
 Ny = 200
 
 Lx = 1.0
 Ly = 1.0
 alpha = 0.1
 T_final = 0.5
-dt_in = 0.0        # let C++ choose stable dt
-bc_str = "DIRICHLET"  # or "NEUMANN"
+dt_in = 0.0 
+bc_str = "DIRICHLET"
 
 output_file = "initial_conditions_large.txt"
 

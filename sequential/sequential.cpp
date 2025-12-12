@@ -7,7 +7,6 @@
 #include <algorithm>
 
 using namespace std;
-
 using Grid = vector<vector<double>>;
 
 void apply_dirichlet(Grid &T,
@@ -142,7 +141,7 @@ int main(int argc, char **argv)
         T.swap(T_new);
     }
 
-    string out_path = output_pref + "_final.csv";
+    string out_path = output_pref + ".csv";
     ofstream out(out_path);
     if (!out) {
         cerr << "Error: cannot open output file " << out_path << "\n";
