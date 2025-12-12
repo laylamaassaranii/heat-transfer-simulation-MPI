@@ -59,23 +59,21 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(world, &rank);
     MPI_Comm_size(world, &size);
 
-    if (rank == 0 && argc < 3) {
-        cerr << "Usage: mpirun -np <P> " << argv[0] << " initial_conditions_large.txt output_prefix\n";
+    if (argc < 3) {
+        if (rank == 0) {
+            cerr << "Usage: mpirun -np <P> " << argv[0] << " initial_conditions_large.txt output_prefix\n";
+        }
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-    string input_path;
-    string output_prefix;
-    if (rank == 0) {
-        input_path = argv[1];
-        output_prefix = argv[2];
-    }
+    string input_path = argv[1];
+    string output_prefix = argv[2];
 
     int dims[2] = {0, 0};
     MPI_Dims_create(size, 2, dims);
     int periods[2] = {0, 0};
     MPI_Comm cart_comm;
-    MPI_Cart_create(world, 2, dims, periods, 0, &cart_comm);
+    MPI_Cart_create(world, 2, dims, periods, 1, &cart_comm);
 
     int cart_rank;
     int coords[2];
