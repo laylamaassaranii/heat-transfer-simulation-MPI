@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     MPI_Dims_create(size, 2, dims);
     int periods[2] = {0, 0};
     MPI_Comm cart_comm;
-    MPI_Cart_create(world, 2, dims, periods, 1, &cart_comm);
+    MPI_Cart_create(world, 2, dims, periods, 0, &cart_comm);
 
     int cart_rank;
     int coords[2];
