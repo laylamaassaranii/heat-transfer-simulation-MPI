@@ -6,13 +6,15 @@
 #include <cstddef>
 #include <algorithm>
 
-using Grid = std::vector<std::vector<double>>;
+using namespace std;
+
+using Grid = vector<vector<double>>;
 
 void apply_dirichlet(Grid &T,
-                     const std::vector<double> &left,
-                     const std::vector<double> &right,
-                     const std::vector<double> &bottom,
-                     const std::vector<double> &top)
+                     const vector<double> &left,
+                     const vector<double> &right,
+                     const vector<double> &bottom,
+                     const vector<double> &top)
 {
     int Nx = static_cast<int>(T.size());
     int Ny = static_cast<int>(T[0].size());
@@ -31,16 +33,16 @@ void apply_dirichlet(Grid &T,
 int main(int argc, char **argv)
 {
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " initial_conditions.txt output_prefix\n";
+        cerr << "Usage: " << argv[0] << " initial_conditions.txt output_prefix\n";
         return 1;
     }
 
-    std::string input_path = argv[1];
-    std::string output_pref = argv[2];
+    string input_path = argv[1];
+    string output_pref = argv[2];
 
-    std::ifstream in(input_path);
+    ifstream in(input_path);
     if (!in) {
-        std::cerr << "Error: cannot open input file " << input_path << "\n";
+        cerr << "Error: cannot open input file " << input_path << "\n";
         return 1;
     }
 
@@ -57,22 +59,22 @@ int main(int argc, char **argv)
     in >> dt_in;
 
     if (!in) {
-        std::cerr << "Error: invalid header in input file.\n";
+        cerr << "Error: invalid header in input file.\n";
         return 1;
     }
 
     if (Nx < 3 || Ny < 3) {
-        std::cerr << "Error: Nx and Ny must be >= 3 (need interior points).\n";
+        cerr << "Error: Nx and Ny must be >= 3 (need interior points).\n";
         return 1;
     }
 
-    Grid T(Nx, std::vector<double>(Ny));
-    Grid T_new(Nx, std::vector<double>(Ny));
+    Grid T(Nx, vector<double>(Ny));
+    Grid T_new(Nx, vector<double>(Ny));
 
     for (int j = 0; j < Ny; ++j) {
         for (int i = 0; i < Nx; ++i) {
             if (!(in >> T[i][j])) {
-                std::cerr << "Error: not enough temperature values in file.\n";
+                cerr << "Error: not enough temperature values in file.\n";
                 return 1;
             }
         }
@@ -89,7 +91,7 @@ int main(int argc, char **argv)
     double dt;
     if (dt_in <= 0.0 || dt_in > dt_max) {
         dt = 0.9 * dt_max;
-        std::cout << "[INFO] Adjusting dt to stable value: dt = " << dt << " (dt_max = " << dt_max << ")\n";
+        cout << "Adjusting dt to stable value: dt = " << dt << " (dt_max = " << dt_max << ")\n";
     } else {
         dt = dt_in;
     }
@@ -97,15 +99,15 @@ int main(int argc, char **argv)
     int Nt = static_cast<int>(T_final / dt);
     double T_final_effective = Nt * dt;
 
-    std::cout << "[INFO] Nx=" << Nx << ", Ny=" << Ny << ", dx=" << dx << ", dy=" << dy << "\n";
-    std::cout << "[INFO] alpha=" << alpha << ", dt=" << dt << ", Nt=" << Nt << ", T_final_effective=" << T_final_effective << "\n";
+    cout << "Nx=" << Nx << ", Ny=" << Ny << ", dx=" << dx << ", dy=" << dy << "\n";
+    cout << "alpha=" << alpha << ", dt=" << dt << ", Nt=" << Nt << ", T_final_effective=" << T_final_effective << "\n";
 
     if (Nt <= 0) {
-        std::cerr << "Error: Nt <= 0 (T_final too small or dt too large).\n";
+        cerr << "Error: Nt <= 0 (T_final too small or dt too large).\n";
         return 1;
     }
 
-    std::vector<double> left(Ny), right(Ny), bottom(Nx), top(Nx);
+    vector<double> left(Ny), right(Ny), bottom(Nx), top(Nx);
 
     for (int j = 0; j < Ny; ++j) {
         left[j]  = T[0][j];
@@ -140,10 +142,10 @@ int main(int argc, char **argv)
         T.swap(T_new);
     }
 
-    std::string out_path = output_pref + "_final.csv";
-    std::ofstream out(out_path);
+    string out_path = output_pref + "_final.csv";
+    ofstream out(out_path);
     if (!out) {
-        std::cerr << "Error: cannot open output file " << out_path << "\n";
+        cerr << "Error: cannot open output file " << out_path << "\n";
         return 1;
     }
 
@@ -157,6 +159,6 @@ int main(int argc, char **argv)
     }
 
     out.close();
-    std::cout << "[INFO] Final field written to " << out_path << "\n";
+    cout << "Final field written to " << out_path << "\n";
     return 0;
 }

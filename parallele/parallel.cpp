@@ -61,13 +61,14 @@ int main(int argc, char **argv) {
 
     if (rank == 0 && argc < 3) {
         cerr << "Usage: mpirun -np <P> " << argv[0] << " initial_conditions_large.txt output_prefix\n";
-        MPI_Abort(world, 1);
+        MPI_Finalize();
+        return 1;
     }
 
     string input_path;
     string output_prefix;
     if (rank == 0) {
-        input_path    = argv[1];
+        input_path = argv[1];
         output_prefix = argv[2];
     }
 
@@ -99,7 +100,8 @@ int main(int argc, char **argv) {
         ifstream in(input_path);
         if (!in) {
             cerr << "Error: cannot open input file " << input_path << "\n";
-            MPI_Abort(cart_comm, 1);
+            MPI_Finalize();
+            return 1;
         }
 
         string bc_str;
@@ -112,7 +114,8 @@ int main(int argc, char **argv) {
 
         if (!in) {
             cerr << "Error: invalid header in input file.\n";
-            MPI_Abort(cart_comm, 1);
+            MPI_Finalize();
+            return 1;
         }
 
         transform(bc_str.begin(), bc_str.end(), bc_str.begin(), ::toupper);
@@ -172,20 +175,21 @@ int main(int argc, char **argv) {
     double T_final_effective = Nt * dt;
 
     if (cart_rank == 0) {
-        cout << "[INFO] Global Nx=" << Nx << ", Ny=" << Ny << ", Lx=" << Lx << ", Ly=" << Ly << "\n";
-        cout << "[INFO] alpha=" << alpha << ", dt=" << dt << " (dt_max=" << dt_max << "), Nt=" << Nt << ", T_final_effective=" << T_final_effective << "\n";
-        cout << "[INFO] dims = [" << dims[0] << " x " << dims[1] << "]\n";
+        cout << "Global Nx=" << Nx << ", Ny=" << Ny << ", Lx=" << Lx << ", Ly=" << Ly << "\n";
+        cout << "alpha=" << alpha << ", dt=" << dt << " (dt_max=" << dt_max << "), Nt=" << Nt << ", T_final_effective=" << T_final_effective << "\n";
+        cout << "dims = [" << dims[0] << " x " << dims[1] << "]\n";
     }
 
     if (Nt <= 0) {
         if (cart_rank == 0) {
             cerr << "Error: Nt <= 0 (T_final too small or dt too large).\n";
         }
-        MPI_Abort(cart_comm, 1);
+        MPI_Finalize();
+        return 1;
     }
 
     if (cart_rank == 0) {
-        cout << "[INFO] Rank 0 will distribute the initial field...\n";
+        cout << "Rank 0 will distribute the initial field...\n";
     }
 
     int Ny_with_halo = local_ny + 2;
@@ -391,7 +395,7 @@ int main(int argc, char **argv) {
                 out << '\n';
             }
             out.close();
-            cout << "[INFO] Final field written to " << out_path << "\n";
+            cout << "Final field written to " << out_path << "\n";
         }
     } else {
         MPI_Send(local_block.data(), local_nx * local_ny, MPI_DOUBLE,
