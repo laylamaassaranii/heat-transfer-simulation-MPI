@@ -113,6 +113,21 @@ int main(int argc, char **argv) {
             MPI_Abort(cart_comm, 1);
         }
 
+        if (alpha <= 0.0) {
+            cerr << "Error: alpha must be > 0.\n";
+            MPI_Abort(cart_comm, 1);
+        }
+
+        if (Lx <= 0.0 || Ly <= 0.0) {
+            cerr << "Error: Lx and Ly must be > 0.\n";
+            MPI_Abort(cart_comm, 1);
+        }
+
+        if (T_final <= 0.0) {
+            cerr << "Error: T_final  must be > 0.\n";
+            MPI_Abort(cart_comm, 1);
+        }
+
         transform(bc_str.begin(), bc_str.end(), bc_str.begin(), ::toupper);
         if (bc_str == "NEUMANN") {
             bc_type = 1;
