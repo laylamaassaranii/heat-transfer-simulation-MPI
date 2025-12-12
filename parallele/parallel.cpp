@@ -61,8 +61,7 @@ int main(int argc, char **argv) {
 
     if (rank == 0 && argc < 3) {
         cerr << "Usage: mpirun -np <P> " << argv[0] << " initial_conditions_large.txt output_prefix\n";
-        MPI_Finalize();
-        return 1;
+        MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     string input_path;
@@ -100,8 +99,7 @@ int main(int argc, char **argv) {
         ifstream in(input_path);
         if (!in) {
             cerr << "Error: cannot open input file " << input_path << "\n";
-            MPI_Finalize();
-            return 1;
+            MPI_Abort(cart_comm, 1);
         }
 
         string bc_str;
@@ -114,8 +112,7 @@ int main(int argc, char **argv) {
 
         if (!in) {
             cerr << "Error: invalid header in input file.\n";
-            MPI_Finalize();
-            return 1;
+            MPI_Abort(cart_comm, 1);
         }
 
         transform(bc_str.begin(), bc_str.end(), bc_str.begin(), ::toupper);
@@ -184,8 +181,7 @@ int main(int argc, char **argv) {
         if (cart_rank == 0) {
             cerr << "Error: Nt <= 0 (T_final too small or dt too large).\n";
         }
-        MPI_Finalize();
-        return 1;
+        MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (cart_rank == 0) {
