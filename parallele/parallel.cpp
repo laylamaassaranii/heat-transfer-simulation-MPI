@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
     double T_final = 0.0;
     double dt_in = 0.0;
     int bc_type = -1;
+    string bc_str;
 
     vector<double> global_T;
 
@@ -137,7 +138,6 @@ int main(int argc, char **argv) {
             MPI_Abort(cart_comm, 1);
         }
 
-        string bc_str;
         in >> Nx >> Ny;
         in >> Lx >> Ly;
         in >> alpha;
@@ -465,7 +465,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        string out_path = output_prefix + "_final.csv";
+        string out_path = "csv/par/" + output_prefix + "_" + bc_str + ".csv";
         ofstream out(out_path);
         if (!out) {
             cerr << "Error: cannot open output file " << out_path << "\n";
