@@ -13,6 +13,8 @@ A 2D heat transfer simulation comparing parallel (MPI) and sequential execution 
 
 [![PDF Report](https://img.shields.io/badge/Report-PDF-red?style=for-the-badge&logo=adobe)](./2d-heat-transfer-report.pdf)
 
+_Comprehensive report covering theoretical foundations, numerical analysis of the 2D heat equation, test results, and performance interpretations for both sequential and parallel implementations._
+
 ## Project Overview
 
 This project simulates heat transfer in a 2D grid using the heat equation:
