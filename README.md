@@ -32,12 +32,23 @@ The simulation is implemented in two ways:
 heat-transfer-simulation-MPI/
 ├── sequential/
 │   ├── sequential.cpp           # Sequential implementation
-│   ├── initial_conditions.txt   # Input for sequential version
-│   └── heat_output.csv          # Output from sequential run
+│   ├── initial_conditions.txt   # Sample input file
+│   └── heat_output.csv          # Sample output file
 ├── parallele/
 │   ├── parallel.cpp             # MPI parallel implementation
-│   ├── initial_conditions_large.txt  # Input for parallel version
-│   └── heat_mpi_large_np4_2_final.csv # Output from parallel run
+│   ├── initial_conditions_large.txt  # Sample input file
+│   └── heat_mpi_large_np4_2_final.csv # Sample output file
+├── csv/
+│   ├── seq/                     # Output directory for sequential runs
+│   │   └── *.csv                # Sequential simulation results
+│   └── par/                     # Output directory for parallel runs
+│       └── *.csv                # Parallel simulation results
+├── initial_data/
+│   ├── data_tests_d/            # Dirichlet test initial conditions
+│   └── data_tests_n/            # Neumann test initial conditions
+├── tests/
+│   ├── tests_d.py               # Generate Dirichlet test cases
+│   └── tests_n.py               # Generate Neumann test cases
 ├── plots/                       # Output directory for visualizations
 ├── generate_ic_large.py         # Script to generate large initial conditions
 ├── visualization.py             # Script to visualize simulation results
@@ -49,9 +60,10 @@ heat-transfer-simulation-MPI/
 ### Sequential Version ([sequential/sequential.cpp](sequential/sequential.cpp))
 
 - **Method**: Standard finite difference method with explicit time-stepping
-- **Boundary Conditions**: Dirichlet boundary conditions (fixed temperatures at edges)
+- **Boundary Conditions**: Supports both Dirichlet (fixed temperatures) and Neumann (zero-gradient) boundary conditions
 - **Grid Update**: Updates entire grid at each time step sequentially
-- **Best for**: Small to medium grid sizes (e.g., 50×50 to 100×100)
+- **Output Location**: Saves results to `csv/seq/` directory
+- **Best for**: Small to medium grid sizes (e.g., 50×50 to 256×256)
 
 ### Parallel Version ([parallele/parallel.cpp](parallele/parallel.cpp))
 
@@ -60,9 +72,10 @@ heat-transfer-simulation-MPI/
   - 2D Cartesian topology for process distribution
   - Each MPI process handles a subdomain of the grid
   - Ghost cell exchange between neighboring processes
-- **Boundary Conditions**: Supports both Dirichlet and Neumann boundary conditions
+- **Boundary Conditions**: Supports both Dirichlet (fixed temperatures) and Neumann (zero-gradient) boundary conditions
 - **Communication**: Non-blocking sends/receives for ghost cell updates
-- **Best for**: Large grid sizes (e.g., 200×200 and above)
+- **Output Location**: Saves results to `csv/par/` directory
+- **Best for**: Large grid sizes (e.g., 512×512 and above)
 
 **Key Features:**
 
@@ -81,7 +94,7 @@ Lx Ly                    # Physical domain size
 alpha                    # Thermal diffusivity
 T_final                  # Final simulation time
 dt                       # Time step (0.0 for auto-calculation)
-BOUNDARY_TYPE            # DIRICHLET or NEUMANN (parallel only)
+BOUNDARY_TYPE            # DIRICHLET or NEUMANN (both versions support both types)
 [Temperature values]     # Ny lines × Nx values per line
 ```
 
@@ -97,11 +110,16 @@ DIRICHLET
 20.0 20.0 20.0 ... (temperature field)
 ```
 
+### Boundary Condition Types
+
+- **DIRICHLET**: Fixed temperature at boundaries (boundaries remain constant throughout simulation)
+- **NEUMANN**: Zero-gradient at boundaries (no heat flux across boundaries, ∂T/∂n = 0)
+
 ## Usage
 
 ### 1. Generate Initial Conditions
 
-For large-scale simulations, generate initial conditions using:
+**For custom large-scale simulations:**
 
 ```bash
 python generate_ic_large.py
@@ -112,6 +130,18 @@ This creates a `initial_conditions_large.txt` file with a Gaussian temperature d
 - Default: 200×200 grid
 - Hot spot at center with Gaussian decay
 - Parameters: Lx=Ly=1.0, α=0.1, T_final=0.5
+
+**For testing (generate multiple test cases):**
+
+```bash
+# Generate Dirichlet boundary condition test cases
+python tests/tests_d.py
+
+# Generate Neumann boundary condition test cases
+python tests/tests_n.py
+```
+
+These scripts create test files in `initial_data/data_tests_d/` and `initial_data/data_tests_n/` directories with various grid sizes for weak/strong scaling analysis.
 
 ### 2. Compile the Programs
 
@@ -132,29 +162,37 @@ mpic++ parallele/parallel.cpp -o parallel.exe -O3
 **Sequential:**
 
 ```bash
-./sequential.exe sequential/initial_conditions.txt sequential/heat_output
+./sequential.exe sequential/initial_conditions.txt output_name
 ```
+
+Output will be saved to `csv/seq/output_name.csv`
 
 **Parallel (with 4 processes):**
 
 ```bash
-mpirun -np 4 ./parallel.exe parallele/initial_conditions_large.txt parallele/heat_mpi_large_np4_2
+mpirun -np 4 ./parallel.exe parallele/initial_conditions_large.txt output_name
 ```
 
-The output will be saved as `<output_prefix>_final.csv` for parallel or `<output_prefix>.csv` for sequential.
+Output will be saved to `csv/par/output_name_<BOUNDARY_TYPE>.csv` (e.g., `output_name_DIRICHLET.csv`)
+
+**Notes:**
+
+- Sequential output: `csv/seq/{output_prefix}.csv`
+- Parallel output: `csv/par/{output_prefix}_{BC_TYPE}.csv`
+- The boundary condition type is automatically appended to parallel output filenames
 
 ### 4. Visualize Results
 
 Generate heatmap visualizations of the final temperature field:
 
 ```bash
-python visualization.py sequential/heat_output.csv plots
-python visualization.py parallele/heat_mpi_large_np4_2_final.csv plots
+python visualization.py csv/seq/output_name.csv plots
+python visualization.py csv/par/output_name_DIRICHLET.csv plots
 ```
 
 The visualization script:
 
-- Reads CSV output files
+- Reads CSV output files from `csv/seq/` or `csv/par/` directories
 - Creates a heatmap using matplotlib
 - Saves figures with timestamps to the `plots/` directory
 - Uses the "viridis" colormap for temperature visualization
@@ -221,6 +259,8 @@ pip install numpy matplotlib
 
 ## Example Workflow
 
+### Basic Workflow
+
 Complete workflow for running and visualizing a simulation:
 
 ```bash
@@ -232,26 +272,87 @@ g++ sequential/sequential.cpp -o sequential.exe -O3
 mpic++ parallele/parallel.cpp -o parallel.exe -O3
 
 # Run sequential version
-./sequential.exe sequential/initial_conditions.txt sequential/heat_output
+./sequential.exe sequential/initial_conditions.txt seq_result
 
 # Run parallel version with 4 processes
-mpirun -np 4 ./parallel.exe parallele/initial_conditions_large.txt parallele/heat_mpi_large_np4_2
+mpirun -np 4 ./parallel.exe parallele/initial_conditions_large.txt par_result
 
 # Visualize both results
-python visualization.py sequential/heat_output.csv plots
-python visualization.py parallele/heat_mpi_large_np4_2_final.csv plots
+python visualization.py csv/seq/seq_result.csv plots
+python visualization.py csv/par/par_result_DIRICHLET.csv plots
+```
+
+### Testing Workflow with Different Boundary Conditions
+
+```bash
+# Generate test cases
+python tests/tests_d.py  # Dirichlet tests
+python tests/tests_n.py  # Neumann tests
+
+# Compile programs
+g++ sequential/sequential.cpp -o sequential.exe -O3
+mpic++ parallele/parallel.cpp -o parallel.exe -O3
+
+# Run with Dirichlet boundaries (256x256 grid)
+./sequential.exe initial_data/data_tests_d/initial_weak_P1_256x256.txt seq_dirichlet_256
+mpirun -np 4 ./parallel.exe initial_data/data_tests_d/initial_weak_P4_512x512.txt par_dirichlet_512
+
+# Run with Neumann boundaries (256x256 grid)
+./sequential.exe initial_data/data_tests_n/initial_weak_P1_256x256.txt seq_neumann_256
+mpirun -np 4 ./parallel.exe initial_data/data_tests_n/initial_weak_P4_512x512.txt par_neumann_512
+
+# Visualize results
+python visualization.py csv/seq/seq_dirichlet_256.csv plots
+python visualization.py csv/par/par_dirichlet_512_DIRICHLET.csv plots
+python visualization.py csv/seq/seq_neumann_256.csv plots
+python visualization.py csv/par/par_neumann_512_NEUMANN.csv plots
 ```
 
 ## Output Files
 
-- **CSV Files**: Comma-separated temperature values (Ny rows × Nx columns)
-- **Plot Images**: PNG files with timestamp in `plots/` directory
-- **Format**: Each row represents a horizontal line of the grid (j-index), each column is a vertical position (i-index)
+### CSV Output Structure
+
+- **Sequential**: Files saved to `csv/seq/{output_prefix}.csv`
+- **Parallel**: Files saved to `csv/par/{output_prefix}_{BC_TYPE}.csv`
+- **Format**: Comma-separated temperature values (Ny rows × Nx columns)
+- **Data Layout**: Each row represents a horizontal line of the grid (j-index), each column is a vertical position (i-index)
+
+### Visualization Output
+
+- **Plot Images**: PNG files with timestamp saved to `plots/` directory
+- **Naming Convention**: Based on input CSV filename with timestamp
+
+## Features Summary
+
+### Boundary Conditions
+
+Both sequential and parallel implementations now support:
+
+1. **Dirichlet Boundaries**: Fixed temperature at domain edges
+
+   - Boundaries remain constant throughout simulation
+   - Useful for modeling heat sources/sinks at boundaries
+
+2. **Neumann Boundaries**: Zero-gradient condition (∂T/∂n = 0)
+   - No heat flux across boundaries
+   - Useful for insulated/isolated systems
+
+### Automatic Output Organization
+
+- Sequential results → `csv/seq/`
+- Parallel results → `csv/par/`
+- Visualizations → `plots/`
+
+### Test Data Generation
+
+- `tests/tests_d.py`: Generates Dirichlet test cases in `initial_data/data_tests_d/`
+- `tests/tests_n.py`: Generates Neumann test cases in `initial_data/data_tests_n/`
+- Includes reference cases and weak/strong scaling test configurations
 
 ## Notes
 
-- The parallel version supports both Dirichlet (fixed) and Neumann (zero-gradient) boundary conditions
-- The sequential version currently only supports Dirichlet boundary conditions
-- Initial conditions can be customized by modifying `generate_ic_large.py`
+- Both sequential and parallel versions support Dirichlet and Neumann boundary conditions
+- Initial conditions can be customized by modifying `generate_ic_large.py` or test scripts
 - For best parallel performance, use grid sizes that are evenly divisible by the number of processes
 - The visualization colormap can be changed in `visualization.py` (currently uses "viridis")
+- Automatic time-step adjustment ensures numerical stability based on CFL condition
