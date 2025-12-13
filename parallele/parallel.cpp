@@ -28,6 +28,43 @@ inline int idx(int i, int j, int local_ny_with_halo) {
     return i * local_ny_with_halo + j;
 }
 
+void apply_dirichlet_boundaries(vector<double> &T,
+                                int local_nx,
+                                int local_ny,
+                                int Ny_with_halo,
+                                int coords[2],
+                                int dims[2],
+                                const vector<double> &left_BC,
+                                const vector<double> &right_BC,
+                                const vector<double> &bottom_BC,
+                                const vector<double> &top_BC)
+{
+    if (coords[0] == 0 && !left_BC.empty()) {
+        for (int j = 1; j <= local_ny; ++j) {
+            T[idx(1, j, Ny_with_halo)] = left_BC[j - 1];
+        }
+    }
+
+    if (coords[0] == dims[0] - 1 && !right_BC.empty()) {
+        for (int j = 1; j <= local_ny; ++j) {
+            T[idx(local_nx, j, Ny_with_halo)] = right_BC[j - 1];
+        }
+    }
+
+    if (coords[1] == 0 && !bottom_BC.empty()) {
+        for (int i = 1; i <= local_nx; ++i) {
+            T[idx(i, 1, Ny_with_halo)] = bottom_BC[i - 1];
+        }
+    }
+
+    if (coords[1] == dims[1] - 1 && !top_BC.empty()) {
+        for (int i = 1; i <= local_nx; ++i) {
+            T[idx(i, local_ny + 0, Ny_with_halo)] = top_BC[i - 1];
+        }
+    }
+}
+
+
 void apply_neumann_ghosts(vector<double> &T, int local_nx, int local_ny, int Ny_with_halo, int coords[2], int dims[2]) {
     if (coords[0] == 0) {
         for (int j = 1; j <= local_ny; ++j) {
@@ -89,7 +126,7 @@ int main(int argc, char **argv) {
     double alpha = 0.0;
     double T_final = 0.0;
     double dt_in = 0.0;
-    int bc_type = 0;
+    int bc_type = -1;
 
     vector<double> global_T;
 
@@ -129,10 +166,16 @@ int main(int argc, char **argv) {
         }
 
         transform(bc_str.begin(), bc_str.end(), bc_str.begin(), ::toupper);
-        if (bc_str == "NEUMANN") {
-            bc_type = 1;
-        } else {
+        if (bc_str == "DIRICHLET") {
             bc_type = 0;
+        }
+        else if (bc_str == "NEUMANN") {
+            bc_type = 1;
+        }
+        else {
+            cerr << "Error: boundary condition '" << bc_str
+                << "' is not implemented. Supported BCs are: DIRICHLET, NEUMANN.\n";
+            return 1;
         }
 
         global_T.resize(Nx * Ny);
@@ -203,7 +246,7 @@ int main(int argc, char **argv) {
 
     int Ny_with_halo = local_ny + 2;
     int Nx_with_halo = local_nx + 2;
-    vector<double> T   (Nx_with_halo * Ny_with_halo, 0.0);
+    vector<double> T(Nx_with_halo * Ny_with_halo, 0.0);
     vector<double> Tnew(Nx_with_halo * Ny_with_halo, 0.0);
 
     vector<double> local_block(local_nx * local_ny);
@@ -243,6 +286,35 @@ int main(int argc, char **argv) {
             int I = li + 1;
             int J = lj + 1;
             T[idx(I, J, Ny_with_halo)] = local_block[lj * local_nx + li];
+        }
+    }
+
+    vector<double> left_BC, right_BC, bottom_BC, top_BC;
+
+    if (bc_type == 0) {
+        if (coords[0] == 0) {
+            left_BC.resize(local_ny);
+            for (int j = 1; j <= local_ny; ++j) {
+                left_BC[j - 1] = T[idx(1, j, Ny_with_halo)];
+            }
+        }
+        if (coords[0] == dims[0] - 1) {
+            right_BC.resize(local_ny);
+            for (int j = 1; j <= local_ny; ++j) {
+                right_BC[j - 1] = T[idx(local_nx, j, Ny_with_halo)];
+            }
+        }
+        if (coords[1] == 0) {
+            bottom_BC.resize(local_nx);
+            for (int i = 1; i <= local_nx; ++i) {
+                bottom_BC[i - 1] = T[idx(i, 1, Ny_with_halo)];
+            }
+        }
+        if (coords[1] == dims[1] - 1) {
+            top_BC.resize(local_nx);
+            for (int i = 1; i <= local_nx; ++i) {
+                top_BC[i - 1] = T[idx(i, local_ny, Ny_with_halo)];
+            }
         }
     }
 
@@ -318,7 +390,9 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (bc_type == 1) {
+        if (bc_type == 0) {
+            apply_dirichlet_boundaries(T, local_nx, local_ny, Ny_with_halo, coords, dims, left_BC, right_BC, bottom_BC, top_BC);
+        } else if (bc_type == 1) {
             apply_neumann_ghosts(T, local_nx, local_ny, Ny_with_halo, coords, dims);
         }
 
