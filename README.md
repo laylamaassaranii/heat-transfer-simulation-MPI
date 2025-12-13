@@ -9,6 +9,10 @@ A 2D heat transfer simulation comparing parallel (MPI) and sequential execution 
 - Neamat Khatib (220966)
 - Farouk Tannir (201153)
 
+## Documentation
+
+[![PDF Report](https://img.shields.io/badge/Report-PDF-red?style=for-the-badge&logo=adobe)](./2d-heat-transfer-report.pdf)
+
 ## Project Overview
 
 This project simulates heat transfer in a 2D grid using the heat equation:
