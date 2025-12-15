@@ -380,7 +380,7 @@ Each VM needs two network adapters:
 **Adapter 1: NAT**  
 For internet access (installing packages, updates).
 
-**Adapter 2: Host-Only Adapter (vboxnet0)**  
+**Adapter 2: Host-Only Adapter**  
 For stable MPI communication between VMs. This avoids issues with Wi-Fi or router configurations.
 
 After enabling Adapter 2 on all VMs, verify the network interface and IP:
