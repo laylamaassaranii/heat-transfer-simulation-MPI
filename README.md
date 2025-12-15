@@ -498,6 +498,8 @@ This occurs when the target machine runs X11, and `orted` (the MPI daemon) tries
 
 **Solution:**
 
+Credit to [Florin Andrei](https://forums.developer.nvidia.com/t/mpirun-authorization-required-but-no-authorization-protocol-specified/353580) for finding this solution.
+
 Set the environment variable `HWLOC_COMPONENTS=-gl` before the non-interactive shell guard in `~/.bashrc` on all worker nodes:
 
 ```bash
