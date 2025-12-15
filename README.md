@@ -362,3 +362,157 @@ Both sequential and parallel implementations now support:
 - For best parallel performance, use grid sizes that are evenly divisible by the number of processes
 - The visualization colormap can be changed in `visualization.py` (currently uses "viridis")
 - Automatic time-step adjustment ensures numerical stability based on CFL condition
+
+## Running MPI on Multiple VirtualBox VMs
+
+This project has been tested on a cluster of 4 Ubuntu VMs (1 master + 3 workers) in VirtualBox. Below is the setup process used for distributed MPI execution.
+
+### Video Demonstration
+
+[![Video Demo](https://img.shields.io/badge/Video-Demo-blue?style=for-the-badge&logo=youtube)](./heat-distribution-networks.mp4)
+
+A video demonstration is included showing the parallel execution of [parallel.cpp](parallele/parallel.cpp) using MPI across a distributed environment with 4 Ubuntu virtual machines (1 master node and 3 worker nodes). The video walks through the setup, execution, and visualization of results using [visualization.py](visualization.py).
+
+### Network Setup
+
+Each VM needs two network adapters:
+
+**Adapter 1: NAT**  
+For internet access (installing packages, updates).
+
+**Adapter 2: Host-Only Adapter (vboxnet0)**  
+For stable MPI communication between VMs. This avoids issues with Wi-Fi or router configurations.
+
+After enabling Adapter 2 on all VMs, verify the network interface and IP:
+
+```bash
+ip -br a
+```
+
+The Host-Only interface is typically `enp0s8` with a private IP address.
+
+### SSH Configuration
+
+MPI requires passwordless SSH to launch processes on remote nodes:
+
+```bash
+sudo apt update
+sudo apt install -y openssh-server
+sudo systemctl enable --now ssh
+```
+
+Set up SSH keys between nodes to avoid password prompts during execution.
+
+### Hostfile Configuration
+
+Create a `hostfile.txt` on the master node listing all participating machines:
+
+```
+username@<VM1_IP> slots=<NB_SLOTS>
+username@<VM2_IP> slots=<NB_SLOTS>
+username@<VM3_IP> slots=<NB_SLOTS>
+username@<VM4_IP> slots=<NB_SLOTS>
+```
+
+Replace `username` with your actual username and `<VM_IP>` placeholders with your actual VM IP addresses. Test the setup:
+
+```bash
+mpirun -np 4 --hostfile hostfile.txt hostname
+```
+
+### Shared Executable Path
+
+MPI expects the executable to exist at the same path on all machines. Two approaches:
+
+**Option A: NFS Shared Folder**
+
+Set up an NFS share on one VM:
+
+```bash
+sudo apt install -y nfs-kernel-server
+sudo nano /etc/exports
+```
+
+Add this line (adjust the path and network range as needed):
+
+```
+<path_to_shared_mpi> <NETWORK_RANGE>(rw,sync,no_subtree_check,no_root_squash)
+```
+
+Apply changes:
+
+```bash
+sudo exportfs -ra
+sudo systemctl restart nfs-kernel-server
+```
+
+Mount on client VMs:
+
+```bash
+sudo apt install -y nfs-common
+sudo mkdir -p <path_to_shared_mpi>
+sudo mount -t nfs <NFS_SERVER_IP>:<path_to_shared_mpi> <path_to_shared_mpi>
+```
+
+Replace `<NFS_SERVER_IP>` with your NFS server VM's IP and `<path_to_shared_mpi>` with your chosen shared directory path.
+
+**Option B: Manual Copy**
+
+Compile the program once, then copy to each VM at the same path:
+
+```bash
+scp parallele.exe username@<VM_IP>:<path_to_shared_mpi>/
+# Repeat for each worker node
+```
+
+### Running the Program
+
+Force OpenMPI to use the host-only interface (e.g., `enp0s8`):
+
+```bash
+mpirun -np 4 --hostfile hostfile.txt \
+  --mca oob_tcp_if_include enp0s8 \
+  --mca btl_tcp_if_include enp0s8 \
+  <path_to_shared_mpi>/parallele.exe \
+  <path_to_initial_conditions> \
+  output_prefix
+```
+
+The master node (rank 0) writes the output file according to the program's naming logic. After execution, visualize the results:
+
+```bash
+python visualization.py <path_to_csv_file>
+```
+
+### Common Issues and Troubleshooting
+
+**Authorization Error with X11**
+
+When running `mpirun` between systems, you might see:
+
+```
+Authorization required, but no authorization protocol specified
+```
+
+This occurs when the target machine runs X11, and `orted` (the MPI daemon) tries to access X11 without proper permissions. The issue is well-documented in the [Open MPI repository](https://github.com/open-mpi/ompi/issues/13535).
+
+**Solution:**
+
+Set the environment variable `HWLOC_COMPONENTS=-gl` before the non-interactive shell guard in `~/.bashrc` on all worker nodes:
+
+```bash
+# ~/.bashrc: executed by bash(1) for non-login shells.
+
+# Export this variable for all sessions before the interactive check
+# Needed for mpirun/orted to avoid X11-related errors
+# See: https://github.com/open-mpi/ompi/issues/13535
+export HWLOC_COMPONENTS=-gl
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+```
+
+Placing the export before the interactive check ensures non-interactive SSH sessions (used by MPI) can access it. Simply exporting in the main body of `.bashrc` won't work because Ubuntu guards against non-interactive execution.
