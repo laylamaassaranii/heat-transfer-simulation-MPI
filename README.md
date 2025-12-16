@@ -183,7 +183,7 @@ Output will be saved to `csv/par/output_name_<BOUNDARY_TYPE>.csv` (e.g., `output
 
 **Notes:**
 
-- Sequential output: `csv/seq/{output_prefix}.csv`
+- Sequential output: `csv/seq/{output_prefix}_{BC_TYPE}.csv`
 - Parallel output: `csv/par/{output_prefix}_{BC_TYPE}.csv`
 - The boundary condition type is automatically appended to parallel output filenames
 
@@ -192,7 +192,7 @@ Output will be saved to `csv/par/output_name_<BOUNDARY_TYPE>.csv` (e.g., `output
 Generate heatmap visualizations of the final temperature field:
 
 ```bash
-python visualization.py csv/seq/output_name.csv plots
+python visualization.py csv/seq/output_name_DIRICHLET.csv plots
 python visualization.py csv/par/output_name_DIRICHLET.csv plots
 ```
 
